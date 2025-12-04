@@ -173,333 +173,334 @@ networks:
 
 ###################################################################
 
-In this Docker Compose file, logging defines how each container writes and stores its logs.
-Docker supports different log drivers, and here the driver used is:
+#In this Docker Compose file, logging defines how each container writes and stores its logs.
+#Docker supports different log drivers, and here the driver used is:
 
-✔ json-file log driver
+#✔ json-file log driver
 
-This means Docker stores container logs in JSON format on the host machine, typically under:
+#This means Docker stores container logs in JSON format on the host machine, typically under:
 
-/var/lib/docker/containers/<container-id>/<container-id>-json.log
+#/var/lib/docker/containers/<container-id>/<container-id>-json.log
 
-🔍 Breakdown of the logging section
+# Breakdown of the logging section
 
-You have this at the top under mongodb:
+#You have this at the top under mongodb:
 
-logging: &logging
-  driver: "json-file"
-  options:
-    max-size: "25m"
-    max-file: "2"
-✔ What this means:
-1. &logging – YAML Anchor
+#logging: &logging
+#  driver: "json-file"
+#  options:
+#    max-size: "25m"
+#    max-file: "2"
+#✔ What this means:
+#1. &logging – YAML Anchor
 
-This creates a reusable reference called logging.
+#This creates a reusable reference called logging.
 
-Instead of repeating the same logging configuration for every service, you define it once.
+#Instead of repeating the same logging configuration for every service, you define it once.
 
-2. driver: "json-file"
+#2. driver: "json-file"
 
-This tells Docker to use its default log driver:
+#This tells Docker to use its default log driver:
 
-Stores logs in a JSON file.
+#Stores logs in a JSON file.
 
-Logs can be viewed using:
+#Logs can be viewed using:
 
-docker logs <container-name>
+#docker logs <container-name>
 
-3. options
+#3. options
 
-These control log rotation.
+#These control log rotation.
 
-max-size: "25m"
+#max-size: "25m"
 
-Each log file will be rotated when it reaches 25 megabytes.
+#Each log file will be rotated when it reaches 25 megabytes.
 
-max-file: "2"
+#max-file: "2"
 
-Docker will keep 2 log files (1 active + 1 old).
+#Docker will keep 2 log files (1 active + 1 old).
 
-Prevents disk from filling up.
+#Prevents disk from filling up.
 
-🔄 How it's reused in other services
+#🔄 How it's reused in other services
 
-Example:
+#Example:
 
-logging:
-  <<: *logging
+#logging:
+#  <<: *logging
 
 
-This is a YAML alias, referencing the anchor defined earlier.
+#This is a YAML alias, referencing the anchor defined earlier.
 
-It means:
-"Use the same logging configuration defined for mongodb."
+#It means:
+#"Use the same logging configuration defined for mongodb."
 
-So all containers get the same logging settings without duplication.
+#So all containers get the same logging settings without duplication.
 
-🟢 Summary
-✔ logging defines:
+# Summary
+#########
+#✔ logging defines:
 
-Which log driver Docker uses
+#Which log driver Docker uses
 
-How logs are stored
+#How logs are stored
 
-Log rotation settings (limit size & number of files)
+#Log rotation settings (limit size & number of files)
 
-✔ YAML Features Used:
+#✔ YAML Features Used:
 
-&logging = Anchor (define once)
+#&logging = Anchor (define once)
 
-*logging = Reference (reuse anywhere)
+#*logging = Reference (reuse anywhere)
 
-<<: = Merge with the anchor
+#<<: = Merge with the anchor
 
-If you want, I can also show you how to:
-✔ change logs to local driver
-✔ send logs to ELK / Loki / CloudWatch
-✔ disable logs for specific containers
+#If you want, I can also show you how to:
+#✔ change logs to local driver
+#✔ send logs to ELK / Loki / CloudWatch
+#✔ disable logs for specific containers
 
-✅ 1. Use a better log driver: local (recommended)
+#✅ 1. Use a better log driver: local (recommended)
 
-local is better than json-file because it compresses old logs and saves disk space.
+#local is better than json-file because it compresses old logs and saves disk space.
 
-Example:
+#Example:
 
-logging: &logging
-  driver: local
-  options:
-    max-size: "20m"
-    max-file: "3"
+#logging: &logging
+#  driver: local
+#  options:
+#    max-size: "20m"
+#    max-file: "3"
 
-✔ Saves more space
-✔ Faster log writes
-✔ Docker’s recommended driver for local logs
+#✔ Saves more space
+#✔ Faster log writes
+#✔ Docker’s recommended driver for local logs
 
-✅ 2. Send Logs to Amazon CloudWatch
+#✅ 2. Send Logs to Amazon CloudWatch
 
-If you're using AWS, CloudWatch is the best choice.
+#If you're using AWS, CloudWatch is the best choice.
 
-Example:
+#Example:
 
-logging: &logging
-  driver: awslogs
-  options:
-    awslogs-region: ap-south-1
-    awslogs-group: robot-shop-logs
-    awslogs-create-group: "true"
-    awslogs-stream: "container-{{.Name}}"
+#logging: &logging
+#  driver: awslogs
+#  options:
+#    awslogs-region: ap-south-1
+#    awslogs-group: robot-shop-logs
+#    awslogs-create-group: "true"
+#    awslogs-stream: "container-{{.Name}}"
 
-Requirements:
+#Requirements:
 
-EC2/ECS/IAM role must allow CloudWatch logs:
-logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
+#EC2/ECS/IAM role must allow CloudWatch logs:
+#logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
 
-✅ 3. Send logs to Loki (Grafana)
+#✅ 3. Send logs to Loki (Grafana)
 
-For Kubernetes-like logging on Docker.
+#For Kubernetes-like logging on Docker.
 
-Example:
+#Example:
 
-logging: &logging
-  driver: loki
-  options:
-    loki-url: "http://loki:3100/loki/api/v1/push"
-    loki-batch-size: "400KB"
+#logging: &logging
+#  driver: loki
+#  options:
+#    loki-url: "http://loki:3100/loki/api/v1/push"
+#    loki-batch-size: "400KB"
 
-Works well with Grafana dashboards.
+#Works well with Grafana dashboards.
 
-✅ 4. Send logs to ELK (Elasticsearch + Logstash + Kibana)
+#✅ 4. Send logs to ELK (Elasticsearch + Logstash + Kibana)
 
-Docker supports log driver: gelf
+#Docker supports log driver: gelf
 
-Example:
+#Example:
 
-logging: &logging
-  driver: gelf
-  options:
-    gelf-address: "udp://logstash:12201"
+#logging: &logging
+#  driver: gelf
+#  options:
+#    gelf-address: "udp://logstash:12201"
 
-Use if you have a central ELK stack.
+#Use if you have a central ELK stack.
 
-✅ 5. Disable logging for specific containers
+#✅ 5. Disable logging for specific containers
 
-If a container is too noisy:
+#If a container is too noisy:
 
-Example:
+#Example:
 
-logging:
-  driver: "none"
+#logging:
+#  driver: "none"
 
-🔄 How to apply these to all containers?
+#🔄 How to apply these to all containers?
 
-You already have this pattern:
+#You already have this pattern:
 
-logging: &logging
-  driver: local
-  options:
-    max-size: "20m"
-    max-file: "3"
+#logging: &logging
+#  driver: local
+#  options:
+#    max-size: "20m"
+#    max-file: "3"
 
-Then for each service:
+#Then for each service:
 
-logging:
-  <<: *logging
+#logging:
+#  <<: *logging
 
-Perfect.
+#Perfect.
 
-👉 Where do you want your Docker container logs to be stored?
+#👉 Where do you want your Docker container logs to be stored?
 
-Choose one option:
+#Choose one option:
 
-1️⃣ Local log storage (simple, default)
+#1️⃣ Local log storage (simple, default)
 
-Logs stored on your server with rotation
-→ Good for small deployments or testing
+#Logs stored on your server with rotation
+#→ Good for small deployments or testing
 
-2️⃣ AWS CloudWatch
+#2️⃣ AWS CloudWatch
 
-Centralized logs, searchable, alerts
-→ Best if you’re on AWS (EC2, ECS, EKS)
+#Centralized logs, searchable, alerts
+#→ Best if you’re on AWS (EC2, ECS, EKS)
 
-3️⃣ Grafana Loki
+#3️⃣ Grafana Loki
 
-Modern, efficient, Kubernetes-style logging
-→ Best if you're running monitoring dashboards
+#Modern, efficient, Kubernetes-style logging
+#→ Best if you're running monitoring dashboards
 
-4️⃣ ELK Stack (Elasticsearch + Logstash + Kibana)
+#4️⃣ ELK Stack (Elasticsearch + Logstash + Kibana)
 
-Powerful but heavy
-→ Best for enterprise search & analytics
+#Powerful but heavy
+#→ Best for enterprise search & analytics
 
-5️⃣ No logs
+#5️⃣ No logs
 
-You want to disable logs for some containers
-→ Useful for noisy or debug containers
+#You want to disable logs for some containers
+#→ Useful for noisy or debug containers
 
-Here is the complete collection of logging setups:
+#Here is the complete collection of logging setups:
 
-✅ 1️⃣ LOCAL LOG STORAGE (Recommended Default)
+#✅ 1️⃣ LOCAL LOG STORAGE (Recommended Default)
 
-Uses Docker’s local driver — saves disk space, rotates logs, compresses old logs.
+#Uses Docker’s local driver — saves disk space, rotates logs, compresses old logs.
 
-Use this in your compose file:
+#Use this in your compose file:
 
-logging: &logging
-  driver: local
-  options:
-    max-size: "20m"
-    max-file: "3"
+#logging: &logging
+#  driver: local
+#  options:
+#    max-size: "20m"
+#    max-file: "3"
 
-Apply to services
+#Apply to services
 
-logging:
-  <<: *logging
+#logging:
+#  <<: *logging
 
-✅ 2️⃣ AWS CLOUDWATCH LOGGING (Best for AWS)
+#✅ 2️⃣ AWS CLOUDWATCH LOGGING (Best for AWS)
 
-Use this if your Docker host is on EC2, EKS worker node, or AWS server.
+#Use this if your Docker host is on EC2, EKS worker node, or AWS server.
 
-CloudWatch Logging Config:
+#CloudWatch Logging Config:
 
-logging: &logging
-  driver: awslogs
-  options:
-    awslogs-region: ap-south-1
-    awslogs-group: robot-shop-logs
-    awslogs-stream: "{{.Name}}"
-    awslogs-create-group: "true"
+#logging: &logging
+#  driver: awslogs
+#  options:
+#    awslogs-region: ap-south-1
+#    awslogs-group: robot-shop-logs
+#    awslogs-stream: "{{.Name}}"
+#    awslogs-create-group: "true"
 
 
-AWS Requirements
+#AWS Requirements
 
-IAM role or key must allow:
-logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
+#IAM role or key must allow:
+#logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents
 
-✅ 3️⃣ LOKI + GRAFANA LOGGING
+#✅ 3️⃣ LOKI + GRAFANA LOGGING
 
-Perfect if you use Loki + Promtail + Grafana dashboard.
+#Perfect if you use Loki + Promtail + Grafana dashboard.
 
-Loki Logging Config:
+#Loki Logging Config:
 
-logging: &logging
-  driver: loki
-  options:
-    loki-url: "http://loki:3100/loki/api/v1/push"
-    loki-batch-size: "400KB"
-    loki-timeout: "10s"
+#logging: &logging
+#  driver: loki
+#  options:
+#    loki-url: "http://loki:3100/loki/api/v1/push"
+#    loki-batch-size: "400KB"
+#    loki-timeout: "10s"
 
-You must have a Loki container or Loki server available.
+#You must have a Loki container or Loki server available.
 
-✅ 4️⃣ ELK STACK LOGGING (ELASTICSEARCH + LOGSTASH + KIBANA)
+#✅ 4️⃣ ELK STACK LOGGING (ELASTICSEARCH + LOGSTASH + KIBANA)
 
-Docker uses the gelf driver for sending logs to Logstash.
+#Docker uses the gelf driver for sending logs to Logstash.
 
-ELK Logging Config:
+#ELK Logging Config:
 
-logging: &logging
-  driver: gelf
-  options:
-    gelf-address: "udp://logstash:12201"
-    tag: "{{.Name}}"
+#logging: &logging
+#  driver: gelf
+#  options:
+#    gelf-address: "udp://logstash:12201"
+#    tag: "{{.Name}}"
 
 
-Configure Logstash input:
+#Configure Logstash input:
 
-input {
-  gelf {
-    port => 12201
-  }
-}
+#input {
+#  gelf {
+#    port => 12201
+#  }
+#}
 
-✅ 5️⃣ DISABLE LOGGING (For noisy or non-critical containers)
-Disable logging completely:
+#✅ 5️⃣ DISABLE LOGGING (For noisy or non-critical containers)
+#Disable logging completely:
 
-logging:
-  driver: none
+#logging:
+#  driver: none
 
 
-Useful for:
+#Useful for:
 
-Debug containers
+#Debug containers
 
-Containers generating huge logs
+#Containers generating huge logs
 
-Temporary workloads
+#Temporary workloads
 
-🔄 How to switch between them?
+#🔄 How to switch between them?
 
-You only replace the anchor at the top:
+#You only replace the anchor at the top:
 
-Example:
+#Example:
 
 # Option 1: Local logs
-logging: &logging
-  driver: local
-  options:
-    max-size: "20m"
-    max-file: "3"
+#logging: &logging
+#  driver: local
+#  options:
+#    max-size: "20m"
+#    max-file: "3"
 
 # OR Option 2: CloudWatch
-logging: &logging
-  driver: awslogs
-  options:
-    ...
-Then everything below stays the same:
+#logging: &logging
+#  driver: awslogs
+#  options:
+#    ...
+#Then everything below stays the same:
 
-logging:
-  <<: *logging
-
-
-🎁 Bonus Recommendation
-
-For production:
+#logging:
+#  <<: *logging
 
 
+# Bonus Recommendation
 
-| Platform                  | Best Logging Option |
-| ------------------------- | ------------------- |
-| **AWS EC2/EKS**           | CloudWatch          |
-| **Local Server**          | Local (default)     |
-| **Monitoring dashboards** | Loki                |
-| **Heavy analytics**       | ELK                 |
-| **Small lab/dev**         | Local               |
+#For production:
+
+
+
+#| Platform                  | Best Logging Option |
+#| ------------------------- | ------------------- |
+#| **AWS EC2/EKS**           | CloudWatch          |
+#| **Local Server**          | Local (default)     |
+#| **Monitoring dashboards** | Loki                |
+#| **Heavy analytics**       | ELK                 |
+#| **Small lab/dev**         | Local               |
